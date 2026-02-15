@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rebuilda · from plastic waste to wooden furniture</title>
+    <!-- Tailwind via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js import map -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js"
+            }
+        }
+    </script>
+    <!-- Google Fonts for Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: #0a1f1a;
+            overflow-x: hidden;
+        }
+        canvas { 
+            display: block; 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100vw; 
+            height: 100vh; 
+            z-index: 0; 
+            pointer-events: none;
+        }
+        .content { 
+            position: relative; 
+            z-index: 10; 
+            pointer-events: none; 
+        }
+        .content * {
+            pointer-events: auto;
+        }
+        .glass-header {
+            background: rgba(10, 30, 25, 0.8);
+            backdrop-filter: blur(12px) saturate(180%);
+            border-bottom: 1px solid rgba(80, 180, 140, 0.3);
+        }
+        .card-glass {
+            background: rgba(20, 45, 40, 0.6);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(110, 231, 183, 0.25);
+            border-radius: 2rem;
+            transition: transform 0.2s;
+        }
+        .card-glass:hover {
+            transform: translateY(-5px);
+            border-color: #34d399;
+        }
+        .section-title {
+            font-size: 3.5rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            line-height: 1.1;
+        }
+        .stat-number {
+            font-size: 5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #a7f3d0, #6ee7b7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .btn-primary {
+            background: #10b981;
+            color: #0a1a1a;
+            font-weight: 600;
+            padding: 0.75rem 2rem;
+            border-radius: 9999px;
+            transition: all 0.2s;
+            box-shadow: 0 10px 25px -5px #10b98180;
+            cursor: pointer;
+            border: none;
+        }
+        .btn-primary:hover {
+            background: #34d399;
+            transform: scale(1.02);
+        }
+        .btn-outline {
+            border: 1px solid #34d399;
+            color: #d1fae5;
+            padding: 0.75rem 2rem;
+            border-radius: 9999px;
+            transition: 0.2s;
+        }
+        .btn-outline:hover {
+            background: #34d39920;
+        }
+        .text-glow {
+            text-shadow: 0 0 40px rgba(16, 185, 129, 0.5);
+        }
+        .stat-badge {
+            background: rgba(255,255,255,0.03);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 2rem;
+            padding: 0.75rem 1.5rem;
+        }
+        .section-anchor {
+            scroll-margin-top: 80px;
+        }
+        /* Product card without icons but with 3D view hint */
+        .product-card {
+            background: rgba(20, 45, 40, 0.6);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(110, 231, 183, 0.25);
+            border-radius: 2rem;
+            padding: 2rem 1.5rem;
+            text-align: center;
+            transition: transform 0.2s;
+        }
+        .product-card:hover {
+            transform: translateY(-5px);
+            border-color: #34d399;
+        }
+        .product-miniature {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 1.5rem;
+            background: rgba(0,0,0,0.2);
+            border-radius: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        /* Modal form styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(8px);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .modal-content {
+            background: #1a2e2a;
+            padding: 2.5rem;
+            border-radius: 2.5rem;
+            max-width: 450px;
+            width: 90%;
+            border: 1px solid #34d399;
+            box-shadow: 0 25px 50px -12px #00000080;
+        }
+        .form-input {
+            width: 100%;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background: #0f2a23;
+            border: 1px solid #34d39950;
+            border-radius: 1rem;
+            color: white;
+            font-size: 1rem;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: #34d399;
+        }
+        .close-btn {
+            float: right;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #34d399;
+        }
+    </style>
+</head>
+<body class="text-white antialiased">
+
+    <!-- Modal Form (hidden by default) -->
+    <div id="partnerModal" class="modal-overlay">
+        <div class="modal-content relative">
+            <span class="close-btn" onclick="document.getElementById('partnerModal').classList.remove('active')">&times;</span>
+            <h3 class="text-3xl font-bold mb-6">Partner With Us</h3>
+            <p class="text-white/60 mb-6">Leave your email and we'll get back to you within 24 hours.</p>
+            <form id="partnerForm" onsubmit="event.preventDefault(); alert('Thank you! We will contact you soon.'); document.getElementById('partnerModal').classList.remove('active');">
+                <input type="text" placeholder="Your Name" class="form-input" required>
+                <input type="email" placeholder="Email Address" class="form-input" required>
+                <input type="text" placeholder="Organization (optional)" class="form-input">
+                <textarea placeholder="Message (optional)" rows="3" class="form-input"></textarea>
+                <button type="submit" class="btn-primary w-full mt-4">Send Message</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Fixed 3D Canvas -->
+    <canvas id="canvas"></canvas>
+
+    <!-- Full UI Content -->
+    <div class="content relative w-full">
+
+        <!-- Navigation -->
+        <nav class="glass-header fixed top-0 left-0 w-full px-8 py-5 flex justify-between items-center z-50 text-white">
+            <div class="text-2xl font-bold tracking-tight bg-gradient-to-r from-emerald-300 to-teal-200 bg-clip-text text-transparent">Rebuilda</div>
+            <div class="hidden md:flex space-x-8 text-sm font-medium">
+                <a href="#problem" class="hover:text-emerald-300 transition">The Problem</a>
+                <a href="#solution" class="hover:text-emerald-300 transition">Solution</a>
+                <a href="#products" class="hover:text-emerald-300 transition">Products</a>
+                <a href="#join" class="hover:text-emerald-300 transition">Join Us</a>
+            </div>
+            <div class="md:hidden text-white text-2xl">☰</div>
+        </nav>
+
+        <!-- Hero Section (buttons removed) -->
+        <section class="min-h-screen flex items-center px-6 md:px-20 pt-28">
+            <div class="max-w-4xl space-y-6">
+                <div class="inline-flex items-center gap-2 bg-emerald-500/10 backdrop-blur border border-emerald-400/20 px-5 py-2 rounded-full text-sm tracking-wide">
+                    <span class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
+                    Bangladesh · circular solution
+                </div>
+                <h1 class="section-title text-6xl md:text-7xl lg:text-8xl">
+                    From Plastic Waste<br>to <span class="bg-gradient-to-r from-emerald-200 via-teal-200 to-cyan-100 bg-clip-text text-transparent">Wonder</span>
+                </h1>
+                <p class="text-xl text-white/70 max-w-2xl leading-relaxed">
+                    We transform discarded plastic bottles into durable, waterproof, and entirely eco-friendly building materials. No toxic releases. Zero compromise.
+                </p>
+                <!-- Buttons removed as requested -->
+            </div>
+        </section>
+
+        <!-- The Problem / Crisis -->
+        <section id="problem" class="section-anchor py-32 px-6 md:px-20 bg-black/20 backdrop-blur-sm">
+            <div class="max-w-7xl mx-auto">
+                <div class="mb-16">
+                    <span class="text-emerald-400 text-sm font-bold tracking-widest">THE CRISIS</span>
+                    <h2 class="section-title text-5xl md:text-7xl mt-2">Bangladesh’s Plastic Emergency</h2>
+                </div>
+                
+                <div class="grid md:grid-cols-3 gap-8">
+                    <div class="card-glass p-8 space-y-4">
+                        <div class="text-5xl">🌊</div>
+                        <h3 class="text-2xl font-bold">Urban Waterlogging</h3>
+                        <p class="text-white/70 leading-relaxed">Crores of plastic bottles clog drainage systems, causing devastating urban flooding across Bangladesh’s major cities.</p>
+                    </div>
+                    <div class="card-glass p-8 space-y-4">
+                        <div class="text-5xl">🔥</div>
+                        <h3 class="text-2xl font-bold">Toxic Air Pollution</h3>
+                        <p class="text-white/70 leading-relaxed">When burned, plastic releases deadly dioxins and furans into the air, poisoning communities and accelerating climate change.</p>
+                    </div>
+                    <div class="card-glass p-8 space-y-4">
+                        <div class="text-5xl">🌱</div>
+                        <h3 class="text-2xl font-bold">Soil Degradation</h3>
+                        <p class="text-white/70 leading-relaxed">Plastic takes 450+ years to decompose, leaching microplastics into soil and water, destroying ecosystems irreversibly.</p>
+                    </div>
+                </div>
+                
+                <div class="mt-20 text-center">
+                    <div class="stat-number">71%</div>
+                    <div class="text-2xl font-light text-white/60">percent of plastic never gets recycled</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- THE ANSWER / Solution -->
+        <section id="solution" class="section-anchor py-32 px-6 md:px-20">
+            <div class="max-w-7xl mx-auto">
+                <div class="mb-16">
+                    <span class="text-emerald-400 text-sm font-bold tracking-widest">THE ANSWER</span>
+                    <h2 class="section-title text-5xl md:text-7xl mt-2">Plastic Reborn Into<br>Sustainable Material</h2>
+                </div>
+                
+                <div class="grid md:grid-cols-2 gap-12">
+                    <div class="space-y-10">
+                        <div class="flex gap-4">
+                            <div class="text-emerald-400 text-3xl">⛏️</div>
+                            <div>
+                                <h3 class="text-2xl font-bold">Extremely Durable</h3>
+                                <p class="text-white/70">Built to last generations. Our materials withstand extreme weather, heavy loads, and daily wear without degradation.</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-4">
+                            <div class="text-emerald-400 text-3xl">💧</div>
+                            <div>
+                                <h3 class="text-2xl font-bold">100% Waterproof</h3>
+                                <p class="text-white/70">Perfect for Bangladesh’s monsoon climate. Our products resist water completely, preventing rot and structural damage.</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-4">
+                            <div class="text-emerald-400 text-3xl">🌿</div>
+                            <div>
+                                <h3 class="text-2xl font-bold">Zero Toxic Release</h3>
+                                <p class="text-white/70">Unlike burning plastic, our process releases no harmful chemicals. Safe for people, safe for the planet.</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-4">
+                            <div class="text-emerald-400 text-3xl">♻️</div>
+                            <div>
+                                <h3 class="text-2xl font-bold">Entirely Eco-Friendly</h3>
+                                <p class="text-white/70">A complete circular economy solution. Every product we make removes plastic from the environment permanently.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="hidden md:block"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- OUR PRODUCTS (with 3D miniature representations) -->
+        <section id="products" class="section-anchor py-32 px-6 md:px-20 bg-black/30 backdrop-blur-sm">
+            <div class="max-w-7xl mx-auto">
+                <div class="mb-16">
+                    <span class="text-emerald-400 text-sm font-bold tracking-widest">OUR PRODUCTS</span>
+                    <h2 class="section-title text-5xl md:text-7xl mt-2">Built From Recycled Plastic</h2>
+                </div>
+                
+                <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <!-- Modular Table -->
+                    <div class="product-card">
+                        <div class="product-miniature">
+                            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="1.5">
+                                <rect x="4" y="12" width="16" height="2" fill="#34d39920" stroke="currentColor"/>
+                                <rect x="6" y="6" width="12" height="6" fill="#34d39920" stroke="currentColor"/>
+                                <line x1="8" y1="6" x2="8" y2="12" stroke="currentColor"/>
+                                <line x1="16" y1="6" x2="16" y2="12" stroke="currentColor"/>
+                            </svg>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-2">Modular Table</h3>
+                        <p class="text-white/60">Versatile, durable tables made entirely from recycled plastic. Customizable for any space.</p>
+                    </div>
+                    <!-- Modular Chair -->
+                    <div class="product-card">
+                        <div class="product-miniature">
+                            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="1.5">
+                                <rect x="6" y="10" width="12" height="4" fill="#34d39920" stroke="currentColor"/>
+                                <rect x="8" y="4" width="8" height="6" fill="#34d39920" stroke="currentColor"/>
+                                <line x1="8" y1="14" x2="8" y2="18" stroke="currentColor"/>
+                                <line x1="16" y1="14" x2="16" y2="18" stroke="currentColor"/>
+                            </svg>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-2">Modular Chair</h3>
+                        <p class="text-white/60">Ergonomic seating solutions built from waste. Stackable, lightweight, and weather-resistant.</p>
+                    </div>
+                    <!-- Eco Brick -->
+                    <div class="product-card">
+                        <div class="product-miniature">
+                            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="1.5">
+                                <rect x="4" y="6" width="16" height="12" fill="#34d39920" stroke="currentColor"/>
+                                <line x1="4" y1="10" x2="20" y2="10" stroke="currentColor"/>
+                                <line x1="4" y1="14" x2="20" y2="14" stroke="currentColor"/>
+                            </svg>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-2">Eco Sand+Plastic Brick</h3>
+                        <p class="text-white/60">Composite bricks stronger than traditional, completely waterproof and eco-friendly.</p>
+                    </div>
+                    <!-- Small Stool -->
+                    <div class="product-card">
+                        <div class="product-miniature">
+                            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="1.5">
+                                <rect x="6" y="8" width="12" height="8" fill="#34d39920" stroke="currentColor"/>
+                                <circle cx="12" cy="16" r="2" stroke="currentColor" fill="none"/>
+                                <line x1="8" y1="8" x2="8" y2="4" stroke="currentColor"/>
+                                <line x1="16" y1="8" x2="16" y2="4" stroke="currentColor"/>
+                            </svg>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-2">Compact Small Stool</h3>
+                        <p class="text-white/60">Portable stools perfect for homes, street vendors, and outdoor events. Incredibly strong.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Ready to Rebuild? / Join Us (with working modal trigger) -->
+        <section id="join" class="section-anchor py-32 px-6 md:px-20 text-center">
+            <div class="max-w-3xl mx-auto space-y-8">
+                <h2 class="section-title text-5xl md:text-7xl">Ready to Rebuild?</h2>
+                <p class="text-xl text-white/70">
+                    Join us in transforming Bangladesh's plastic crisis into sustainable opportunity. Every product makes a difference.
+                </p>
+                <div class="pt-4">
+                    <button class="btn-primary text-lg px-10 py-4" onclick="document.getElementById('partnerModal').classList.add('active')">Partner With Us →</button>
+                </div>
+                <div class="mt-6">
+                    <a href="#" class="text-emerald-400 underline underline-offset-4">Learn More</a>
+                </div>
+                <div class="pt-16 text-white/40 text-sm border-t border-white/10 mt-16">
+                    <div class="font-bold text-white text-2xl mb-2">Rebuilda</div>
+                    <p>Transforming plastic waste into sustainable future. Made in Bangladesh.</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Three.js Script: original darker ground color preserved -->
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'https://unpkg.com/three@0.128.0/examples/jsm/controls/OrbitControls.js';
+
+        // --- setup ---
+        const canvas = document.getElementById('canvas');
+        const scene = new THREE.Scene();
+        // Original darker earthy tone - restored
+        scene.background = new THREE.Color(0x3a4a3a);
+        
+        scene.fog = new THREE.Fog(0x3a4a3a, 10, 35);
+        
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(6, 4, 14);
+        
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 0.5;
+        controls.enableZoom = true;
+        controls.enablePan = false;
+        controls.maxPolarAngle = Math.PI / 2.2;
+        controls.target.set(1.5, 1.8, 0);
+
+        // --- lighting ---
+        const ambient = new THREE.AmbientLight(0x40486a, 0.7);
+        scene.add(ambient);
+        
+        const keyLight = new THREE.DirectionalLight(0xffeedd, 1.8);
+        keyLight.position.set(4, 12, 6);
+        keyLight.castShadow = true;
+        keyLight.receiveShadow = true;
+        keyLight.shadow.mapSize.width = 2048;
+        keyLight.shadow.mapSize.height = 2048;
+        keyLight.shadow.camera.near = 0.5;
+        keyLight.shadow.camera.far = 25;
+        keyLight.shadow.camera.left = -8;
+        keyLight.shadow.camera.right = 8;
+        keyLight.shadow.camera.top = 8;
+        keyLight.shadow.camera.bottom = -8;
+        scene.add(keyLight);
+        
+        const fillLight = new THREE.DirectionalLight(0xaaccff, 0.8);
+        fillLight.position.set(-4, 6, 5);
+        scene.add(fillLight);
+
+        // --- GROUND (original darker soil) ---
+        const groundGeo = new THREE.CircleGeometry(18, 64);
+        const canvasSoil = document.createElement('canvas');
+        canvasSoil.width = 512;
+        canvasSoil.height = 512;
+        const ctx = canvasSoil.getContext('2d');
+        ctx.fillStyle = '#5a4a3a';
+        ctx.fillRect(0, 0, 512, 512);
+        for (let i = 0; i < 8000; i++) {
+            ctx.fillStyle = `rgba(80, 60, 40, ${Math.random()*0.3})`;
+            ctx.fillRect(Math.floor(Math.random()*512), Math.floor(Math.random()*512), 2, 2);
+        }
+        const soilTexture = new THREE.CanvasTexture(canvasSoil);
+        soilTexture.wrapS = THREE.RepeatWrapping;
+        soilTexture.wrapT = THREE.RepeatWrapping;
+        soilTexture.repeat.set(6, 6);
+        
+        const groundMat = new THREE.MeshStandardMaterial({ 
+            map: soilTexture,
+            roughness: 0.8, 
+            metalness: 0.0,
+            color: 0x5a4a3a
+        });
+        const ground = new THREE.Mesh(groundGeo, groundMat);
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = -0.01;
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+        // --- WASTE ITEMS ---
+        const wasteGroup = new THREE.Group();
+        function createBottle(pos, col, scaleFactor = 1.0) {
+            const grp = new THREE.Group();
+            const bodyMat = new THREE.MeshPhysicalMaterial({ color: col, emissive: 0x102030, transparent: true, opacity: 0.6, roughness: 0.2, clearcoat: 0.9 });
+            const body = new THREE.Mesh(new THREE.CylinderGeometry(0.35 * scaleFactor, 0.3 * scaleFactor, 1.2 * scaleFactor, 12), bodyMat);
+            body.castShadow = true;
+            body.receiveShadow = true;
+            body.position.y = 0.6 * scaleFactor;
+            grp.add(body);
+            const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.2 * scaleFactor, 0.2 * scaleFactor, 0.2 * scaleFactor, 8), new THREE.MeshStandardMaterial({ color: 0xcc5555 }));
+            cap.position.y = 1.25 * scaleFactor;
+            cap.castShadow = true;
+            grp.add(cap);
+            grp.position.set(pos.x, pos.y, pos.z);
+            grp.rotation.y = Math.random() * Math.PI * 2;
+            return grp;
+        }
+        const colors = [0x88aadd, 0x99bbff, 0xaacc99, 0xccaa88, 0x77aadd];
+        for (let i = 0; i < 12; i++) {
+            const pos = { x: -1 + Math.random() * 4, y: 0.1, z: -1 + Math.random() * 3 };
+            const col = colors[Math.floor(Math.random() * colors.length)];
+            wasteGroup.add(createBottle(pos, col, 0.8 + Math.random()*0.5));
+        }
+        wasteGroup.position.set(-1.0, 0, 0.5);
+        scene.add(wasteGroup);
+
+        // --- 3D TABLE MODEL ---
+        const tableGroup = new THREE.Group();
+        const woodColor = 0xac8e6a;
+        const darkWood = 0x8b6b4a;
+        const tableTop = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.2, 1.4), new THREE.MeshStandardMaterial({ color: woodColor, roughness: 0.6 }));
+        tableTop.position.y = 1.0;
+        tableTop.castShadow = true;
+        tableGroup.add(tableTop);
+        
+        const legMat = new THREE.MeshStandardMaterial({ color: darkWood });
+        [[-1.0, 0.4, -0.6], [1.0, 0.4, -0.6], [-1.0, 0.4, 0.6], [1.0, 0.4, 0.6]].forEach(pos => {
+            const leg = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.8, 0.2), legMat);
+            leg.position.set(pos[0], pos[1], pos[2]);
+            leg.castShadow = true;
+            tableGroup.add(leg);
+        });
+        tableGroup.position.set(0.5, 0.0, -1.2);
+        tableGroup.rotation.y = -0.1;
+        tableGroup.visible = false;
+        scene.add(tableGroup);
+
+        // --- 3D CHAIR MODEL ---
+        const chairGroup = new THREE.Group();
+        const seat = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.2, 1.2), new THREE.MeshStandardMaterial({ color: woodColor, roughness: 0.6 }));
+        seat.position.y = 0.6;
+        seat.castShadow = true;
+        chairGroup.add(seat);
+        const back = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.8, 0.15), new THREE.MeshStandardMaterial({ color: woodColor }));
+        back.position.set(0, 1.0, -0.55);
+        back.castShadow = true;
+        chairGroup.add(back);
+        const chairLegPos = [[-0.5, 0.2, -0.5], [0.5, 0.2, -0.5], [-0.5, 0.2, 0.5], [0.5, 0.2, 0.5]];
+        chairLegPos.forEach(pos => {
+            const leg = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.5, 0.15), new THREE.MeshStandardMaterial({ color: darkWood }));
+            leg.position.set(pos[0], pos[1], pos[2]);
+            leg.castShadow = true;
+            chairGroup.add(leg);
+        });
+        chairGroup.position.set(2.2, 0.0, 0.8);
+        chairGroup.rotation.y = 0.2;
+        chairGroup.visible = false;
+        scene.add(chairGroup);
+
+        // --- 3D BRICK MODEL (stack) ---
+        const brickGroup = new THREE.Group();
+        const brickMat = new THREE.MeshStandardMaterial({ color: 0x8a9a7a });
+        for (let i = 0; i < 3; i++) {
+            const brick = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.2, 0.4), brickMat);
+            brick.position.set(0, 0.15 + i*0.25, 0);
+            brick.castShadow = true;
+            brick.receiveShadow = true;
+            brickGroup.add(brick);
+        }
+        brickGroup.position.set(-0.8, 0.0, 1.8);
+        brickGroup.rotation.y = 0.3;
+        brickGroup.visible = false;
+        scene.add(brickGroup);
+
+        // --- 3D STOOL MODEL ---
+        const stoolGroup = new THREE.Group();
+        const stoolMat = new THREE.MeshStandardMaterial({ color: woodColor });
+        const stoolSeat = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.2, 0.9), stoolMat);
+        stoolSeat.position.y = 0.5;
+        stoolSeat.castShadow = true;
+        stoolGroup.add(stoolSeat);
+        const stoolLegs = [[-0.3, 0.2, -0.3], [0.3, 0.2, -0.3], [-0.3, 0.2, 0.3], [0.3, 0.2, 0.3]];
+        stoolLegs.forEach(pos => {
+            const leg = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.4, 0.15), new THREE.MeshStandardMaterial({ color: darkWood }));
+            leg.position.set(pos[0], pos[1], pos[2]);
+            leg.castShadow = true;
+            stoolGroup.add(leg);
+        });
+        stoolGroup.position.set(1.0, 0.0, 2.2);
+        stoolGroup.rotation.y = 0.1;
+        stoolGroup.visible = false;
+        scene.add(stoolGroup);
+
+        // --- floating particles ---
+        const particleGeo = new THREE.BufferGeometry();
+        const particleCount = 200;
+        const posArray = new Float32Array(particleCount * 3);
+        for (let i = 0; i < particleCount * 3; i += 3) {
+            posArray[i] = (Math.random() - 0.5) * 18;
+            posArray[i+1] = (Math.random() * 5);
+            posArray[i+2] = (Math.random() - 0.5) * 18;
+        }
+        particleGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        const particleMat = new THREE.PointsMaterial({ color: 0xeeddaa, size: 0.06, transparent: true, blending: THREE.AdditiveBlending });
+        const particles = new THREE.Points(particleGeo, particleMat);
+        scene.add(particles);
+
+        // --- ANIMATION: waste transforms into all furniture ---
+        const clock = new THREE.Clock();
+        function animate() {
+            const delta = clock.getDelta();
+            const elapsed = performance.now() / 1000;
+            const t = (elapsed * 0.35) % 2;
+
+            if (t < 0.6) {
+                wasteGroup.visible = true;
+                tableGroup.visible = false;
+                chairGroup.visible = false;
+                brickGroup.visible = false;
+                stoolGroup.visible = false;
+                wasteGroup.children.forEach((child, idx) => {
+                    child.position.y = 0.1 + Math.sin(elapsed * 3 + idx) * 0.02;
+                });
+            } else if (t < 1.2) {
+                const prog = (t - 0.6) / 0.6;
+                wasteGroup.scale.set(1 - prog, 1 - prog, 1 - prog);
+                tableGroup.visible = true;
+                chairGroup.visible = true;
+                brickGroup.visible = true;
+                stoolGroup.visible = true;
+                const scale = prog * 0.8 + 0.2;
+                tableGroup.scale.set(scale, scale, scale);
+                chairGroup.scale.set(scale, scale, scale);
+                brickGroup.scale.set(scale, scale, scale);
+                stoolGroup.scale.set(scale, scale, scale);
+            } else {
+                wasteGroup.visible = false;
+                tableGroup.visible = true;
+                chairGroup.visible = true;
+                brickGroup.visible = true;
+                stoolGroup.visible = true;
+                tableGroup.scale.set(1, 1, 1);
+                chairGroup.scale.set(1, 1, 1);
+                brickGroup.scale.set(1, 1, 1);
+                stoolGroup.scale.set(1, 1, 1);
+                // gentle idle
+                tableGroup.position.y = 0.0 + Math.sin(elapsed * 2) * 0.01;
+                chairGroup.position.y = 0.0 + Math.sin(elapsed * 2.3) * 0.01;
+                brickGroup.position.y = 0.0 + Math.sin(elapsed * 2.1) * 0.01;
+                stoolGroup.position.y = 0.0 + Math.sin(elapsed * 2.4) * 0.01;
+            }
+            particles.rotation.y += 0.0002;
+            controls.update();
+            renderer.render(scene, camera);
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
